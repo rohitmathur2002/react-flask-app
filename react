@@ -1,0 +1,69 @@
+name: Deploy React App to Plesk
+
+on:
+  push:
+    branches:
+      - main
+env:
+  PLESK_HOST: ${{ secrets.PLESK_HOST }}
+  PLESK_USERNAME: ${{ secrets.PLESK_USERNAME }}
+  PLESK_PASSWORD: ${{ secrets.PLESK_PASSWORD }}
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v2
+        with:
+          node-version: 14
+
+      - name: Install dependencies and build
+        run: |
+          cd react-app/
+          npm ci
+          npm run build
+- name: Deploy to Plesk
+  uses: SamKirkland/FTP-Deploy-Action@4.1.2
+  with:
+    server: ${{ secrets.PLESK_HOST }}
+    username: ${{ secrets.PLESK_USERNAME }}
+    password: ${{ secrets.PLESK_PASSWORD }}
+    server_port: PLESK_SERVER_PORT
+    local_dir: react-app/build/
+    remote_dir: httpdocs/
+
+
+jobs:
+  build:
+    # ... React app build job configuration
+
+  deploy-flask:
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.x
+
+      - name: Install dependencies
+        run: |
+          cd flask-api/
+          pip install -r requirements.txt
+
+      - name: Deploy to Plesk
+        uses: SamKirkland/FTP-Deploy-Action@4.1.2
+        with:
+          server: ${{ secrets.PLESK_HOST }}
+          username: ${{ secrets.PLESK_USERNAME }}
+          password: ${{ secrets.PLESK_PASSWORD }}
+          server_port: PLESK_SERVER_PORT
+          local_dir: flask-api/
+          remote_dir: httpdocs/
+
